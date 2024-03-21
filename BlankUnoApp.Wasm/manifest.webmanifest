@@ -1,0 +1,10 @@
+{
+  "background_color": "#ffffff",
+  "description": "BlankUnoApp",
+  "display": "standalone",
+  "name": "BlankUnoApp",
+  "short_name": "BlankUnoApp",
+  "start_url": "/index.html",
+  "theme_color": "#ffffff",
+  "scope": "/"
+}
