@@ -86,3 +86,27 @@ internal enum XModifierMask
     Button5Mask = (1 << 12),
     AnyModifier = (1 << 15)
 }
+
+public enum XShapeOperation
+{
+    ShapeSet,
+    ShapeUnion,
+    ShapeIntersect,
+    ShapeSubtract,
+    ShapeInvert
+}
+
+public enum XShapeKind
+{
+    ShapeBounding,
+    ShapeClip,
+    //ShapeInput // Not usable without more imports
+}
+
+public enum XOrdering
+{
+    Unsorted,
+    YSorted,
+    YXSorted,
+    YXBanded
+}

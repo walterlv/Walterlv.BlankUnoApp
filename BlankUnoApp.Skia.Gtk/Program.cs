@@ -1,4 +1,6 @@
 using System;
+using System.Diagnostics;
+using System.Runtime.InteropServices;
 
 using Cairo;
 
@@ -12,6 +14,7 @@ using SkiaSharp;
 
 using Uno.UI.Runtime.Skia.Gtk;
 
+using Windows.ApplicationModel.DataTransfer.ShareTarget;
 using Windows.System.Threading.Core;
 
 using Color = Cairo.Color;
@@ -22,6 +25,15 @@ public class Program
 {
     public static void Main(string[] args)
     {
+        while (true)
+        {
+            System.Threading.Thread.Sleep(100);
+            if (Debugger.IsAttached)
+            {
+                break;
+            }
+        }
+
         ExceptionManager.UnhandledException += delegate (UnhandledExceptionArgs expArgs)
         {
             Console.WriteLine("GLIB UNHANDLED EXCEPTION" + expArgs.ExceptionObject.ToString());
@@ -42,6 +54,7 @@ public class Program
 
 internal class GtkWindow : IPlatformWindow
 {
+    private const string libX11Ext = "libXext.so.6";
     private readonly GtkHost _host;
 
     public GtkWindow(GtkHost host)
@@ -56,16 +69,95 @@ internal class GtkWindow : IPlatformWindow
         window.Title = "Walterlv Blank Uno App";
 
         Console.WriteLine("GtkWindow.Initialize");
-        window.AppPaintable = true;
+        //window.AppPaintable = true;
         var screen = window.Screen;
         var visual = screen.RgbaVisual;
         Console.WriteLine("IsComposited: " + screen.IsComposited);
         Console.WriteLine("Visual: " + visual);
         if (visual is not null && screen.IsComposited)
         {
-            window.Visual = visual;
+            //window.Visual = visual;
         }
+        ClipInteraction(window.Display.Handle, window.Handle);
     }
+
+    static void ClipInteraction(nint display, nint window)
+    {
+        //XRectangle[] rects = [
+        //        new XRectangle {
+        //            x = 0,
+        //            y = 0,
+        //            width = 100,
+        //            height = 100,
+        //        },
+        //        new XRectangle {
+        //            x = 0,
+        //            y = 0,
+        //            width = 100,
+        //            height = 100,
+        //        },
+        //    ];
+        //XShapeCombineRectangles(display, window, XShapeKind.ShapeBounding,
+        //    0, 0, rects, 1,
+        //    XShapeOperation.ShapeSet, XOrdering.YXBanded);
+
+        var rects = new XRectangle[]
+        {
+            new XRectangle
+            {
+                x = 0,
+                y = 0,
+                width = 1,
+                height = 1,
+            }
+        };
+        //Console.WriteLine(rect);
+        XShapeCombineRectangles(display, window, XShapeKind.ShapeBounding, 0, 0, rects, rects.Length, XShapeOperation.ShapeSet, XOrdering.Unsorted);
+    }
+
+    [StructLayout(LayoutKind.Sequential)]
+    public struct XRectangle
+    {
+        public short x;
+        public short y;
+        public ushort width;
+        public ushort height;
+    }
+
+    public enum XShapeOperation
+    {
+        ShapeSet,
+        ShapeUnion,
+        ShapeIntersect,
+        ShapeSubtract,
+        ShapeInvert
+    }
+
+    public enum XShapeKind
+    {
+        ShapeBounding,
+        ShapeClip,
+        //ShapeInput // Not usable without more imports
+    }
+
+    public enum XOrdering
+    {
+        Unsorted,
+        YSorted,
+        YXSorted,
+        YXBanded
+    }
+
+    [DllImport("libXext.so.6")]
+    public extern static void XShapeCombineRectangles(IntPtr display, IntPtr window,
+        XShapeKind dest_kind, int x_off, int y_off,
+        XRectangle[] rectangles, int n_rects,
+        XShapeOperation op, XOrdering ordering);
+    //[DllImport(libX11Ext)]
+    //public extern static void XShapeCombineRectangles(IntPtr display, IntPtr window,
+    //    XShapeKind dest_kind, int x_off, int y_off,
+    //    XRectangle[] rectangles, int n_rects,
+    //    XShapeOperation op, XOrdering ordering);
 }
 
 internal sealed class DemoWindow : global::Gtk.Window

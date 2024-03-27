@@ -5,20 +5,22 @@ using BlankX11App.X11;
 using static BlankX11App.X11.XLib;
 using static BlankX11App.X11.GlxConsts;
 using System.Diagnostics;
+using System.Runtime.InteropServices;
 
-while (true)
-{
-    Thread.Sleep(100);
-    if (Debugger.IsAttached)
-    {
-        break;
-    }
-}
+//while (true)
+//{
+//    Thread.Sleep(100);
+//    if (Debugger.IsAttached)
+//    {
+//        break;
+//    }
+//}
 
 var display = XOpenDisplay(0);
 var defaultScreen = XDefaultScreen(display);
 var rootWindow = XRootWindow(display, defaultScreen);
-var visual = GetVisual(XOpenDisplay(0), defaultScreen);
+XMatchVisualInfo(display, defaultScreen, 32, 4, out var visualInfo);
+var visual = visualInfo.visual;
 var valueMask = SetWindowValuemask.BackPixmap
     | SetWindowValuemask.BackPixel
     | SetWindowValuemask.BorderPixel
@@ -35,11 +37,12 @@ var attr = new XSetWindowAttributes
     colormap = XCreateColormap(display, rootWindow, visual, 0),
 };
 
-var handle = XCreateWindow(display, rootWindow, 100, 100, 320, 240, 0,
+var handle = XCreateWindow(display, rootWindow, 100, 100, 640, 480, 0,
     32,
     (int)CreateWindowArgs.InputOutput,
     visual,
     (nuint)valueMask, ref attr);
+ClipInteraction(display, handle);
 XMapWindow(display, handle);
 XFlush(display);
 
@@ -96,4 +99,39 @@ static unsafe nint GetVisual(nint deferredDisplay, int defaultScreen)
     }
 
     return visual->visual;
+}
+
+static void ClipInteraction(nint display, nint window)
+{
+    // 创建并初始化 XRectangle 结构
+    XRectangle[] rectangles = new XRectangle[1];
+    rectangles[0].x = 0;
+    rectangles[0].y = 0;
+    rectangles[0].width = 100;
+    rectangles[0].height = 100;
+
+    // 分配内存并复制矩形数组
+    IntPtr unmanagedRectangles = Marshal.AllocHGlobal(Marshal.SizeOf<XRectangle>() * rectangles.Length);
+
+    for (int i = 0; i < rectangles.Length; i++)
+    {
+        IntPtr currentPtr = IntPtr.Add(unmanagedRectangles, Marshal.SizeOf<XRectangle>() * i);
+        Marshal.StructureToPtr(rectangles[i], currentPtr, false);
+    }
+
+    // 调用 XShapeCombineRectangles 函数
+    XShapeCombineRectangles(
+        display,
+        window,
+        0, // ShapeInput
+        0, // x_offset
+        0, // y_offset
+        unmanagedRectangles,
+        rectangles.Length,
+        0, // ShapeSet
+        0  // YXBanded
+    );
+
+    // 释放分配的内存
+    Marshal.FreeHGlobal(unmanagedRectangles);
 }

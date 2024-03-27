@@ -899,3 +899,12 @@ internal struct XSetWindowAttributes
     internal nint colormap;
     internal nint cursor;
 }
+
+[StructLayout(LayoutKind.Sequential)]
+public struct XRectangle
+{
+    public short x;
+    public short y;
+    public ushort width;
+    public ushort height;
+}
